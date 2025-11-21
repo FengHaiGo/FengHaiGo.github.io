@@ -208,8 +208,135 @@
                 font-size: 14px;
             }
         }
+
+        /* 二维码打赏模态框 */
+        .donate-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .donate-modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .donate-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .donate-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #f0f0f0;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .donate-modal-close:hover {
+            background: #e0e0e0;
+            transform: rotate(90deg);
+        }
+
+        .donate-modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .donate-modal-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .donate-qrcode {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donate-qrcode img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .donate-modal-footer {
+            font-size: 13px;
+            color: #999;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .donate-modal-content {
+                padding: 30px 20px;
+            }
+
+            .donate-modal-title {
+                font-size: 20px;
+            }
+
+            .donate-qrcode {
+                width: 200px;
+                height: 200px;
+            }
+        }
     </style>
-    <script defer src="https://cloud.umami.is/script.js" data-website-id="dc502577-139a-4165-be0b-33ee86d64e9b"></script>
 </head>
 <body>
     <div class="container">
@@ -241,10 +368,23 @@
         <!-- 底部信息 -->
         <div class="footer">
             <p>点击任意地区按钮，将在新标签页中打开对应的 App Store Today 页面</p>
-            <a href="https://buymeacoffee.com/emuloader" target="_blank" class="donate-btn">
+            <button class="donate-btn" onclick="openDonateModal()">
                 <span>☕</span>
                 <span>支持开发者</span>
-            </a>
+            </button>
+        </div>
+    </div>
+
+    <!-- 二维码打赏模态框 -->
+    <div class="donate-modal" id="donateModal" onclick="closeDonateModalOnBackdrop(event)">
+        <div class="donate-modal-content" onclick="event.stopPropagation()">
+            <button class="donate-modal-close" onclick="closeDonateModal()">×</button>
+            <div class="donate-modal-title">💝 感谢支持</div>
+            <div class="donate-modal-desc">扫描下方二维码进行打赏<br>您的支持是我持续开发的动力</div>
+            <div class="donate-qrcode">
+                <img src="https://yaxkzvom.pinit.eth.limo" alt="打赏二维码">
+            </div>
+            <div class="donate-modal-footer">感谢您的慷慨支持！</div>
         </div>
     </div>
 
@@ -376,6 +516,34 @@
         // 页面加载完成后初始化
         window.addEventListener('DOMContentLoaded', () => {
             initButtons();
+        });
+
+        // 打开打赏模态框
+        function openDonateModal() {
+            const modal = document.getElementById('donateModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        }
+
+        // 关闭打赏模态框
+        function closeDonateModal() {
+            const modal = document.getElementById('donateModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = ''; // 恢复滚动
+        }
+
+        // 点击背景关闭模态框
+        function closeDonateModalOnBackdrop(event) {
+            if (event.target.id === 'donateModal') {
+                closeDonateModal();
+            }
+        }
+
+        // 按 ESC 键关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeDonateModal();
+            }
         });
     </script>
 </body>
