@@ -1,0 +1,1466 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 转 HTML 工具</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js" 
+            onerror="console.error('Marked.js 加载失败')"></script>
+    <!-- PDF 生成库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- 备用 CDN -->
+    <script>
+        if (typeof marked === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js';
+            script.onload = function() {
+                console.log('Marked.js 从备用 CDN 加载成功');
+            };
+            script.onerror = function() {
+                console.error('所有 CDN 都加载失败');
+            };
+            document.head.appendChild(script);
+        }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 600px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            padding: 20px;
+            border-right: 1px solid #e0e0e0;
+        }
+
+        .panel:last-child {
+            border-right: none;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.dragover {
+            background: #e8ebff;
+            border-color: #764ba2;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .upload-text {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+        }
+
+        .editor {
+            width: 100%;
+            min-height: 500px;
+            max-height: none;
+            height: auto;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 16px;
+            resize: none;
+            line-height: 1.6;
+            overflow-y: hidden;
+            box-sizing: border-box;
+        }
+
+        .preview {
+            width: 100%;
+            min-height: 500px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #fff;
+            overflow-y: auto;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+
+        .preview h1, .preview h2, .preview h3 {
+            margin-top: 20px;
+            margin-bottom: 18px;
+            color: #333;
+        }
+
+        .preview h1 {
+            font-size: 32px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .preview h2 {
+            font-size: 28px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+
+        .preview h3 {
+            font-size: 24px;
+        }
+
+        .preview p {
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .preview code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95em;
+        }
+
+        .preview pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+
+        .preview pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .preview blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin-left: 0;
+            color: #666;
+            font-style: italic;
+        }
+
+        .preview ul, .preview ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+
+        .preview li {
+            margin-bottom: 5px;
+        }
+
+        .preview table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+
+        .preview table th,
+        .preview table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .preview table th {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+
+        .preview a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .preview a:hover {
+            text-decoration: underline;
+        }
+
+        .preview img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .file-info {
+            background: #f8f9ff;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar .btn {
+            font-size: 13px;
+            padding: 8px 16px;
+        }
+
+        .status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            padding: 12px 24px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 8px;
+            font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.3s ease;
+            pointer-events: none;
+            max-width: 600px;
+            min-width: 200px;
+            text-align: center;
+            word-wrap: break-word;
+        }
+
+        .status.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* 底部打赏区域 */
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+        }
+
+        /* 打赏按钮 */
+        .donate-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            border: none;
+            border-radius: 30px;
+            color: #333;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .donate-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .donate-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .donate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.5);
+        }
+
+        .donate-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .donate-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (max-width: 768px) {
+            .donate-btn {
+                padding: 12px 24px;
+                font-size: 14px;
+            }
+        }
+
+        /* 二维码打赏模态框 */
+        .donate-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .donate-modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .donate-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .donate-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #f0f0f0;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .donate-modal-close:hover {
+            background: #e0e0e0;
+            transform: rotate(90deg);
+        }
+
+        .donate-modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .donate-modal-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .donate-qrcode {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donate-qrcode img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .donate-modal-footer {
+            font-size: 13px;
+            color: #999;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .donate-modal-content {
+                padding: 30px 20px;
+            }
+
+            .donate-modal-title {
+                font-size: 20px;
+            }
+
+            .donate-qrcode {
+                width: 200px;
+                height: 200px;
+            }
+        }
+    </style>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="dc502577-139a-4165-be0b-33ee86d64e9b"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📝 Markdown 转 HTML 工具</h1>
+            <p>上传 Markdown 文件，实时预览并导出为 HTML</p>
+        </div>
+
+        <div class="content">
+            <div class="panel" id="editorPanel">
+                <div class="panel-title">
+                    <span>📄 Markdown 编辑器</span>
+                    <div class="toolbar">
+                        <button class="btn" onclick="document.getElementById('fileInput').click()">📁 上传文件</button>
+                        <button class="btn" onclick="clearContent()">清空</button>
+                        <button class="btn btn-secondary" onclick="downloadHTML()">导出 HTML</button>
+                    </div>
+                </div>
+
+                <input type="file" id="fileInput" class="file-input" accept=".md,.markdown" onchange="handleFileSelect(event)">
+
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <strong>当前文件：</strong><span id="fileName"></span>
+                </div>
+
+                <textarea class="editor" id="editor" placeholder="在此输入 Markdown 内容，或上传文件..." oninput="updatePreview(); autoResizeEditor();"></textarea>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">
+                    <span>👁️ HTML 预览</span>
+                    <div class="toolbar">
+                        <button class="btn" onclick="copyHTML()" title="复制HTML内容到剪贴板">📋 复制HTML</button>
+                        <button class="btn btn-secondary" onclick="downloadHTMLFromPreview()" title="下载为HTML文件">💾 下载HTML</button>
+                        <button class="btn btn-secondary" onclick="downloadPDF()" title="下载为PDF文件">📄 下载PDF</button>
+                    </div>
+                </div>
+                <div class="preview" id="preview">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👀</div>
+                        <div>预览区域</div>
+                        <div style="font-size: 12px; margin-top: 10px;">输入 Markdown 内容或上传文件后，预览将显示在这里</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部打赏区域 -->
+        <div class="footer">
+            <button class="donate-btn" onclick="openDonateModal()">
+                <span>☕</span>
+                <span>支持开发者</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 悬浮状态提示 -->
+    <div class="status" id="status"></div>
+
+    <!-- 二维码打赏模态框 -->
+    <div class="donate-modal" id="donateModal" onclick="closeDonateModalOnBackdrop(event)">
+        <div class="donate-modal-content" onclick="event.stopPropagation()">
+            <button class="donate-modal-close" onclick="closeDonateModal()">×</button>
+            <div class="donate-modal-title">💝 感谢支持</div>
+            <div class="donate-modal-desc">扫描下方二维码进行打赏<br>您的支持是我持续开发的动力</div>
+            <div class="donate-qrcode">
+                <img src="https://yaxkzvom.pinit.eth.limo" alt="打赏二维码">
+            </div>
+            <div class="donate-modal-footer">感谢您的慷慨支持！</div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const editorPanel = document.getElementById('editorPanel');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const status = document.getElementById('status');
+
+        // 自动调整编辑框高度
+        function autoResizeEditor() {
+            // 保存当前滚动位置
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            // 调整高度
+            editor.style.height = 'auto';
+            editor.style.height = Math.max(500, editor.scrollHeight) + 'px';
+            
+            // 恢复滚动位置
+            window.scrollTo(0, scrollTop);
+        }
+
+        // 检查 marked 是否已加载
+        function checkMarked() {
+            if (typeof marked === 'undefined') {
+                showStatus('Markdown 解析库加载中，请稍候...', true);
+                setTimeout(checkMarked, 100);
+                return false;
+            }
+            return true;
+        }
+
+        // 配置 marked
+        function initMarked() {
+            if (typeof marked !== 'undefined') {
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    headerIds: true,
+                    mangle: false
+                });
+            }
+        }
+
+        // 更新预览
+        function updatePreview() {
+            if (!checkMarked()) {
+                return;
+            }
+
+            const markdown = editor.value;
+            if (markdown.trim()) {
+                try {
+                    // 兼容不同版本的 marked
+                    const html = typeof marked.parse === 'function' 
+                        ? marked.parse(markdown) 
+                        : marked(markdown);
+                    preview.innerHTML = html;
+                } catch (error) {
+                    console.error('Markdown 解析错误:', error);
+                    showStatus('Markdown 解析失败: ' + error.message, true);
+                    preview.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">❌</div>
+                            <div>解析错误</div>
+                            <div style="font-size: 12px; margin-top: 10px;">${error.message}</div>
+                        </div>
+                    `;
+                }
+            } else {
+                preview.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">👀</div>
+                        <div>预览区域</div>
+                        <div style="font-size: 12px; margin-top: 10px;">输入 Markdown 内容或上传文件后，预览将显示在这里</div>
+                    </div>
+                `;
+            }
+        }
+
+        // 处理文件选择
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                loadFile(file);
+            }
+        }
+
+        // 加载文件
+        function loadFile(file) {
+            if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
+                showStatus('请选择 Markdown 文件（.md 或 .markdown）', true);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                editor.value = content;
+                autoResizeEditor(); // 调整编辑框高度
+                fileName.textContent = file.name;
+                fileInfo.style.display = 'block';
+                
+                // 确保 marked 已加载后再更新预览
+                if (typeof marked !== 'undefined') {
+                    updatePreview();
+                    showStatus('文件加载成功！');
+                } else {
+                    showStatus('正在加载 Markdown 解析库，请稍候...');
+                    // 等待 marked 加载
+                    const checkInterval = setInterval(function() {
+                        if (typeof marked !== 'undefined') {
+                            clearInterval(checkInterval);
+                            initMarked();
+                            updatePreview();
+                            showStatus('文件加载成功！');
+                        }
+                    }, 100);
+                    // 10秒后停止检查
+                    setTimeout(function() {
+                        clearInterval(checkInterval);
+                        if (typeof marked === 'undefined') {
+                            showStatus('Markdown 解析库加载失败，请刷新页面重试', true);
+                        }
+                    }, 10000);
+                }
+            };
+            reader.onerror = function() {
+                showStatus('文件读取失败，请重试', true);
+            };
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // 清空内容
+        function clearContent() {
+            if (confirm('确定要清空所有内容吗？')) {
+                editor.value = '';
+                autoResizeEditor(); // 调整编辑框高度
+                fileInput.value = '';
+                fileInfo.style.display = 'none';
+                updatePreview();
+                showStatus('内容已清空');
+            }
+        }
+
+        // 导出 HTML
+        function downloadHTML() {
+            const markdown = editor.value;
+            if (!markdown.trim()) {
+                showStatus('没有内容可导出', true);
+                return;
+            }
+
+            // 兼容不同版本的 marked
+            const html = typeof marked.parse === 'function' 
+                ? marked.parse(markdown) 
+                : marked(markdown);
+            const fullHTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 导出</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.8;
+            color: #333;
+            font-size: 16px;
+        }
+        h1, h2, h3 {
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 32px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            font-size: 28px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+        h3 {
+            font-size: 24px;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95em;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin-left: 0;
+            color: #666;
+            font-style: italic;
+        }
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        table th {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+
+            const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (fileName.textContent || 'markdown-export').replace(/\.(md|markdown)$/i, '') + '.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus('HTML 文件导出成功！');
+        }
+
+        // 优化HTML以适配公众号编辑器
+        function optimizeHTMLForWeChat(html) {
+            // 创建临时容器
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // 为所有元素添加内联样式
+            const allElements = tempDiv.querySelectorAll('*');
+            allElements.forEach(el => {
+                const tagName = el.tagName.toLowerCase();
+                
+                // 处理标题 - 确保所有标题都有完整的样式
+                if (tagName === 'h1') {
+                    el.setAttribute('style', 'font-size: 24px; font-weight: bold; margin-top: 20px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 2px solid #667eea; color: #333;');
+                } else if (tagName === 'h2') {
+                    // 重点处理 h2，确保样式完整
+                    el.setAttribute('style', 'font-size: 22px; font-weight: bold; margin-top: 18px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #e0e0e0; color: #333; display: block;');
+                } else if (tagName === 'h3') {
+                    el.setAttribute('style', 'font-size: 20px; font-weight: bold; margin-top: 15px; margin-bottom: 8px; color: #333; display: block;');
+                } else if (tagName === 'h4') {
+                    el.setAttribute('style', 'font-size: 18px; font-weight: bold; margin-top: 12px; margin-bottom: 6px; color: #333; display: block;');
+                } else if (tagName === 'h5' || tagName === 'h6') {
+                    el.setAttribute('style', 'font-size: 17px; font-weight: bold; margin-top: 10px; margin-bottom: 6px; color: #333; display: block;');
+                }
+                // 处理段落
+                else if (tagName === 'p') {
+                    el.setAttribute('style', 'margin-bottom: 12px; line-height: 1.8; color: #333; font-size: 16px;');
+                }
+                // 处理代码
+                else if (tagName === 'code' && el.parentElement.tagName.toLowerCase() !== 'pre') {
+                    el.setAttribute('style', 'background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: Consolas, Monaco, monospace; font-size: 0.95em;');
+                }
+                // 处理代码块
+                else if (tagName === 'pre') {
+                    el.setAttribute('style', 'background-color: #f4f4f4; padding: 12px; border-radius: 6px; overflow-x: auto; margin-bottom: 12px; font-family: Consolas, Monaco, monospace; font-size: 14px; line-height: 1.6;');
+                }
+                // 处理引用
+                else if (tagName === 'blockquote') {
+                    el.setAttribute('style', 'border-left: 4px solid #667eea; padding-left: 12px; margin-left: 0; color: #666; font-style: italic; margin-bottom: 12px; font-size: 16px;');
+                }
+                // 处理列表
+                else if (tagName === 'ul' || tagName === 'ol') {
+                    el.setAttribute('style', 'margin-left: 20px; margin-bottom: 12px; font-size: 16px;');
+                } else if (tagName === 'li') {
+                    el.setAttribute('style', 'margin-bottom: 4px; line-height: 1.8; font-size: 16px;');
+                }
+                // 处理表格
+                else if (tagName === 'table') {
+                    el.setAttribute('style', 'width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 16px;');
+                } else if (tagName === 'th') {
+                    el.setAttribute('style', 'border: 1px solid #ddd; padding: 8px; text-align: left; background-color: #f8f9ff; font-weight: bold; font-size: 16px;');
+                } else if (tagName === 'td') {
+                    el.setAttribute('style', 'border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 16px;');
+                }
+                // 处理链接
+                else if (tagName === 'a') {
+                    el.setAttribute('style', 'color: #667eea; text-decoration: none;');
+                }
+                // 处理图片
+                else if (tagName === 'img') {
+                    el.setAttribute('style', 'max-width: 100%; height: auto; border-radius: 6px; margin: 12px 0; display: block;');
+                }
+            });
+            
+            // 确保容器有基本样式
+            tempDiv.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif';
+            tempDiv.style.fontSize = '16px';
+            tempDiv.style.lineHeight = '1.8';
+            tempDiv.style.color = '#333';
+            
+            return tempDiv.innerHTML;
+        }
+
+        // 复制HTML内容到剪贴板（适合公众号）
+        function copyHTML() {
+            const markdown = editor.value;
+            if (!markdown.trim()) {
+                showStatus('没有内容可复制', true);
+                return;
+            }
+
+            if (!checkMarked()) {
+                showStatus('Markdown 解析库未加载，请稍候...', true);
+                return;
+            }
+
+            try {
+                // 兼容不同版本的 marked
+                const html = typeof marked.parse === 'function' 
+                    ? marked.parse(markdown) 
+                    : marked(markdown);
+                
+                // 优化HTML以适配公众号
+                const optimizedHTML = optimizeHTMLForWeChat(html);
+                
+                // 使用 Clipboard API 复制HTML（现代浏览器）
+                if (navigator.clipboard && navigator.clipboard.write) {
+                    // 创建包含HTML的Blob
+                    const htmlBlob = new Blob([optimizedHTML], { type: 'text/html' });
+                    const textBlob = new Blob([preview.innerText || preview.textContent], { type: 'text/plain' });
+                    
+                    const clipboardItem = new ClipboardItem({
+                        'text/html': htmlBlob,
+                        'text/plain': textBlob
+                    });
+                    
+                    navigator.clipboard.write([clipboardItem]).then(() => {
+                        showStatus('HTML 内容已复制到剪贴板！可以直接粘贴到公众号编辑器');
+                    }).catch(() => {
+                        // 如果 ClipboardItem 不支持，尝试复制纯HTML文本
+                        navigator.clipboard.writeText(optimizedHTML).then(() => {
+                            showStatus('HTML 内容已复制到剪贴板！');
+                        }).catch(() => {
+                            fallbackCopy(optimizedHTML);
+                        });
+                    });
+                } else {
+                    // 备用方案：使用传统方法
+                    fallbackCopy(optimizedHTML);
+                }
+            } catch (error) {
+                console.error('复制错误:', error);
+                showStatus('复制失败: ' + error.message, true);
+            }
+        }
+
+        // 备用复制方法
+        function fallbackCopy(html) {
+            // 创建临时元素来复制HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            tempDiv.style.position = 'fixed';
+            tempDiv.style.left = '-9999px';
+            tempDiv.style.top = '-9999px';
+            document.body.appendChild(tempDiv);
+            
+            // 选择所有内容
+            const range = document.createRange();
+            range.selectNodeContents(tempDiv);
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+            
+            // 复制
+            try {
+                const success = document.execCommand('copy');
+                if (success) {
+                    showStatus('HTML 内容已复制到剪贴板！');
+                } else {
+                    showStatus('复制失败，请手动选择复制', true);
+                }
+            } catch (err) {
+                showStatus('复制失败，请手动选择复制', true);
+            }
+            
+            // 清理
+            selection.removeAllRanges();
+            document.body.removeChild(tempDiv);
+        }
+
+        // 从预览区域下载HTML文件
+        function downloadHTMLFromPreview() {
+            const markdown = editor.value;
+            if (!markdown.trim()) {
+                showStatus('没有内容可导出', true);
+                return;
+            }
+
+            if (!checkMarked()) {
+                showStatus('Markdown 解析库未加载，请稍候...', true);
+                return;
+            }
+
+            try {
+                // 兼容不同版本的 marked
+                const html = typeof marked.parse === 'function' 
+                    ? marked.parse(markdown) 
+                    : marked(markdown);
+                
+                const fullHTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 导出</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.8;
+            color: #333;
+            font-size: 16px;
+        }
+        h1, h2, h3 {
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 32px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h2 {
+            font-size: 28px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 8px;
+        }
+        h3 {
+            font-size: 24px;
+        }
+        p {
+            margin-bottom: 15px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95em;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin-left: 0;
+            color: #666;
+            font-style: italic;
+        }
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        table th {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+
+                const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = (fileName.textContent || 'markdown-export').replace(/\.(md|markdown)$/i, '') + '.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showStatus('HTML 文件下载成功！');
+            } catch (error) {
+                console.error('下载错误:', error);
+                showStatus('下载失败: ' + error.message, true);
+            }
+        }
+
+        // 下载为PDF文件 - 使用浏览器打印功能作为主要方案
+        function downloadPDF() {
+            const markdown = editor.value;
+            if (!markdown.trim()) {
+                showStatus('没有内容可导出', true);
+                return;
+            }
+
+            if (!checkMarked()) {
+                showStatus('Markdown 解析库未加载，请稍候...', true);
+                return;
+            }
+
+            try {
+                // 兼容不同版本的 marked
+                const html = typeof marked.parse === 'function' 
+                    ? marked.parse(markdown) 
+                    : marked(markdown);
+                
+                // 创建完整的HTML文档用于打印
+                const fullHTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown 导出</title>
+    <style>
+        @media print {
+            @page {
+                margin: 15mm;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 20mm;
+            line-height: 1.8;
+            color: #333;
+            background: #fff;
+            font-size: 16px;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            margin-top: 20px;
+            margin-bottom: 18px;
+            font-weight: bold;
+        }
+        h1 {
+            font-size: 28px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }
+        h2 {
+            font-size: 24px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 6px;
+        }
+        h3 {
+            font-size: 22px;
+        }
+        p {
+            margin-bottom: 12px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.95em;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin-left: 0;
+            color: #666;
+            font-style: italic;
+            margin-bottom: 12px;
+        }
+        ul, ol {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        table th {
+            background: #f8f9ff;
+            font-weight: 600;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+${html}
+</body>
+</html>`;
+
+                // 创建新窗口用于打印
+                const printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    showStatus('无法打开新窗口，请允许弹出窗口后重试', true);
+                    return;
+                }
+                
+                printWindow.document.write(fullHTML);
+                printWindow.document.close();
+                
+                // 等待内容加载后触发打印
+                printWindow.onload = function() {
+                    setTimeout(() => {
+                        printWindow.print();
+                        showStatus('已打开打印对话框，请选择"另存为PDF"或"保存为PDF"');
+                    }, 500);
+                };
+                
+                // 如果onload没触发，直接打印
+                setTimeout(() => {
+                    if (printWindow.document.readyState === 'complete') {
+                        printWindow.print();
+                        showStatus('已打开打印对话框，请选择"另存为PDF"或"保存为PDF"');
+                    }
+                }, 1000);
+                
+            } catch (error) {
+                console.error('PDF生成错误:', error);
+                showStatus('PDF 生成失败: ' + error.message, true);
+            }
+        }
+
+        // 显示状态消息
+        function showStatus(message, isError = false) {
+            status.textContent = message;
+            status.className = 'status' + (isError ? ' error' : '');
+            
+            // 强制重排以触发动画
+            void status.offsetWidth;
+            
+            // 添加show类以触发淡入动画
+            setTimeout(() => {
+                status.classList.add('show');
+            }, 10);
+            
+            // 3秒后淡出并隐藏
+            setTimeout(() => {
+                status.classList.remove('show');
+                setTimeout(() => {
+                    status.className = 'status';
+                }, 300); // 等待淡出动画完成
+            }, 3000);
+        }
+
+        // 拖拽上传
+        editorPanel.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            editorPanel.style.background = '#f0f2ff';
+            editorPanel.style.border = '2px dashed #764ba2';
+        });
+
+        editorPanel.addEventListener('dragleave', (e) => {
+            // 只有当离开整个面板时才移除样式
+            if (!editorPanel.contains(e.relatedTarget)) {
+                editorPanel.style.background = '';
+                editorPanel.style.border = '';
+            }
+        });
+
+        editorPanel.addEventListener('drop', (e) => {
+            e.preventDefault();
+            editorPanel.style.background = '';
+            editorPanel.style.border = '';
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                loadFile(file);
+            }
+        });
+
+        // 处理粘贴事件，防止页面跳转
+        editor.addEventListener('paste', function(e) {
+            // 保存当前滚动位置
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
+            // 使用 setTimeout 确保粘贴内容已插入后再调整高度
+            setTimeout(function() {
+                autoResizeEditor();
+                // 恢复滚动位置
+                window.scrollTo(0, scrollTop);
+            }, 0);
+        });
+
+        // 初始化
+        // 初始化编辑框高度
+        autoResizeEditor();
+        
+        // 等待 marked 加载完成
+        if (typeof marked !== 'undefined') {
+            initMarked();
+            updatePreview();
+        } else {
+            // 如果 marked 还没加载，等待加载
+            window.addEventListener('load', function() {
+                if (typeof marked !== 'undefined') {
+                    initMarked();
+                    updatePreview();
+                } else {
+                    showStatus('Markdown 解析库加载失败，请检查网络连接', true);
+                }
+            });
+        }
+
+        // 打开打赏模态框
+        function openDonateModal() {
+            const modal = document.getElementById('donateModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        }
+
+        // 关闭打赏模态框
+        function closeDonateModal() {
+            const modal = document.getElementById('donateModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = ''; // 恢复滚动
+        }
+
+        // 点击背景关闭模态框
+        function closeDonateModalOnBackdrop(event) {
+            if (event.target.id === 'donateModal') {
+                closeDonateModal();
+            }
+        }
+
+        // 按 ESC 键关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeDonateModal();
+            }
+        });
+    </script>
+</body>
+</html>
+
