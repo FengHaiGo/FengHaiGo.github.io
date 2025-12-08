@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>风海铜锣工具合集 - 首页</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+        }
+
+        .tools-section {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            margin-bottom: 30px;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .tool-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+            border: 2px solid #e8ebff;
+            border-radius: 12px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        .tool-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .tool-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .tool-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .tool-description {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .tool-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-link::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .tool-link:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .tool-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tool-link span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .donate-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            border: none;
+            border-radius: 30px;
+            color: #333;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .donate-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .donate-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .donate-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.5);
+        }
+
+        .donate-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .donate-btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 二维码打赏模态框 */
+        .donate-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .donate-modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .donate-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .donate-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #f0f0f0;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .donate-modal-close:hover {
+            background: #e0e0e0;
+            transform: rotate(90deg);
+        }
+
+        .donate-modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .donate-modal-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .donate-qrcode {
+            width: 250px;
+            height: 250px;
+            margin: 0 auto 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donate-qrcode img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .donate-modal-footer {
+            font-size: 13px;
+            color: #999;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 28px;
+            }
+
+            .header p {
+                font-size: 16px;
+            }
+
+            .tools-section {
+                padding: 25px;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .tool-card {
+                padding: 25px;
+            }
+
+            .donate-modal-content {
+                padding: 30px 20px;
+            }
+
+            .donate-modal-title {
+                font-size: 20px;
+            }
+
+            .donate-qrcode {
+                width: 200px;
+                height: 200px;
+            }
+
+            .donate-btn {
+                padding: 12px 24px;
+                font-size: 14px;
+            }
+        }
+    </style>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="dc502577-139a-4165-be0b-33ee86d64e9b"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 标题区域 -->
+        <div class="header">
+            <h1>🛠️ 风海铜锣工具合集</h1>
+            <p>实用的在线工具，让工作更高效</p>
+        </div>
+
+        <!-- 工具展示区域 -->
+        <div class="tools-section">
+            <div class="tools-grid">
+                <!-- Markdown 转 HTML 工具 -->
+                <div class="tool-card" onclick="window.open('https://fenghaigo.github.io/md5tohtml.html', '_blank')">
+                    <span class="tool-icon">📝</span>
+                    <div class="tool-title">Markdown 转 HTML 工具</div>
+                    <div class="tool-description">
+                        上传 Markdown 文件，实时预览并导出为 HTML。支持多种导出格式，包括 HTML 和 PDF，是内容创作者和开发者的得力助手。
+                    </div>
+                    <a href="https://fenghaigo.github.io/md5tohtml.html" target="_blank" class="tool-link" onclick="event.stopPropagation()">
+                        <span>🚀 立即使用</span>
+                    </a>
+                </div>
+
+                <!-- App Store Today 页面查看器 -->
+                <div class="tool-card" onclick="window.open('https://fenghaigo.github.io/appstore_viewer.html', '_blank')">
+                    <span class="tool-icon">🌍</span>
+                    <div class="tool-title">App Store Today 页面查看器</div>
+                    <div class="tool-description">
+                        选择地区，在新标签页中打开对应的 App Store Today 页面。支持全球多个国家和地区，方便查看不同地区的 App Store 内容。
+                    </div>
+                    <a href="https://fenghaigo.github.io/appstore_viewer.html" target="_blank" class="tool-link" onclick="event.stopPropagation()">
+                        <span>🚀 立即使用</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部信息 -->
+        <div class="footer">
+            <button class="donate-btn" onclick="openDonateModal()">
+                <span>☕</span>
+                <span>支持开发者</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 二维码打赏模态框 -->
+    <div class="donate-modal" id="donateModal" onclick="closeDonateModalOnBackdrop(event)">
+        <div class="donate-modal-content" onclick="event.stopPropagation()">
+            <button class="donate-modal-close" onclick="closeDonateModal()">×</button>
+            <div class="donate-modal-title">💝 感谢支持</div>
+            <div class="donate-modal-desc">扫描下方二维码进行打赏<br>您的支持是我持续开发的动力</div>
+            <div class="donate-qrcode">
+                <img src="https://yaxkzvom.pinit.eth.limo" alt="打赏二维码">
+            </div>
+            <div class="donate-modal-footer">感谢您的慷慨支持！</div>
+        </div>
+    </div>
+
+    <script>
+        // 打开打赏模态框
+        function openDonateModal() {
+            const modal = document.getElementById('donateModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        }
+
+        // 关闭打赏模态框
+        function closeDonateModal() {
+            const modal = document.getElementById('donateModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = ''; // 恢复滚动
+        }
+
+        // 点击背景关闭模态框
+        function closeDonateModalOnBackdrop(event) {
+            if (event.target.id === 'donateModal') {
+                closeDonateModal();
+            }
+        }
+
+        // 按 ESC 键关闭模态框
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeDonateModal();
+            }
+        });
+    </script>
+</body>
+</html>
